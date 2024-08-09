@@ -1,0 +1,66 @@
+
+:root {
+    --color1: #1a003d;
+    --color2: #4600b0;
+    --color3: #6313ff;
+    --color4: #b1a8ff;
+    --color5: #e5e4ff;
+}
+
+* {
+
+}
+
+main {
+    background-color: var(--color1);
+}
+
+header {
+    height: 500px;
+    background-color: var(--color1);
+
+}
+
+.my-header-bg-div {
+    /* height: 100%; */
+    background-size: contain;
+}
+
+.sub-banner-div {
+    background: linear-gradient(90deg, var(--color1) 40%, transparent 100%);
+    color: white;
+
+}
+
+.presentation-head-div {
+    margin-left: 5%;
+    /* margin-top: 30px; */
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 30%;
+}
+
+
+.div-image-supperpose {
+    height: 500px;
+    width: 500px;
+    background-size: contain;
+    background-color: white;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 79%, var(--color1) 100%);
+}
+
+.img-cerso-3d {
+    height: 50%;
+    width: 50%;
+    
+
+}
+
+.img-moi-assi {
+
+    height: 70%;
+    
+}

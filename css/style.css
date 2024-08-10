@@ -501,6 +501,7 @@ animation: customAni 60s ease 0s infinite normal forwards;
 .contact-section {
     padding: 50px 10% !important;
     background-color: var(--color);
+    height: 100vh;
 
 }
 
@@ -776,6 +777,10 @@ animation: customAni 60s ease 0s infinite normal forwards;
 
     }
 
+    .element-date {
+        font-size: 12px;
+    }
+
 
     .project-section {
         padding: 50px 10% !important;
@@ -802,6 +807,12 @@ animation: customAni 60s ease 0s infinite normal forwards;
         padding-top: 10px;
       }
 
+
+
+      .contact-section {
+        height: auto;
+    
+    }
    }
 
 

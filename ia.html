@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Développeur Full-Stack</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    background-color: #1a0d3d;
+    color: #fff;
+}
+
+header {
+    padding: 20px 50px;
+    background-color: #1a0d3d;
+}
+
+nav ul {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+}
+
+nav ul li {
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+    text-transform: uppercase;
+}
+
+nav ul li a:hover {
+    color: #ff6f61;
+}
+
+.hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0 50px;
+}
+
+.hero-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    width: 100%;
+}
+
+.text-content {
+    max-width: 600px;
+}
+
+.text-content h1 {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.text-content h1 .highlight {
+    color: #ff6f61;
+    border-bottom: 2px solid #ff6f61;
+}
+
+.text-content h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #ccc;
+}
+
+.text-content p {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.buttons {
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 15px 30px;
+    text-decoration: none;
+    font-size: 18px;
+    border-radius: 5px;
+    margin-right: 15px;
+}
+
+.primary {
+    background-color: #ff6f61;
+    color: #fff;
+}
+
+.secondary {
+    background-color: transparent;
+    color: #fff;
+    border: 2px solid #fff;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.social-icons {
+    margin-top: 30px;
+}
+
+.social-icons a {
+    color: #fff;
+    font-size: 24px;
+    margin-right: 20px;
+    text-decoration: none;
+}
+
+.social-icons a:hover {
+    color: #ff6f61;
+}
+
+.image-content img {
+    max-width: 400px;
+    border: 2px solid #fff;
+    border-radius: 10px;
+}
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#accueil">Accueil</a></li>
+                <li><a href="#a-propos">À propos</a></li>
+                <li><a href="#experiences">Expériences</a></li>
+                <li><a href="#competences">Compétences</a></li>
+                <li><a href="#projets">Projets</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section id="accueil" class="hero">
+        <div class="hero-content">
+            <div class="text-content">
+                <h1>Hi, je suis <span class="highlight">______</span></h1>
+                <h2>Analyste Développeur Full-stack Web et Mobile</h2>
+                <p>Analyste développeur Full-stack dévoué à l'excellence technique. Mon objectif ? Transformer des concepts en code robuste et performant.</p>
+                <p>Si vous cherchez un artisan de la technologie pour renforcer votre équipe ou mener à bien vos projets, je suis là pour vous.</p>
+                <div class="buttons">
+                    <a href="#recruter" class="btn primary">Me recruter</a>
+                    <a href="#appeler" class="btn secondary">M'appeler</a>
+                </div>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-x-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+            <div class="image-content">
+                <img src="path-to-your-image.jpg" alt="Photo de profil">
+            </div>
+        </div>
+    </section>
+</body>
+</html>

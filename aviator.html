@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviator - Jeu de Pari</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #000;
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .plane-container {
+            position: relative;
+            width: 100%;
+            height: 60vh;
+            perspective: 1000px;
+            overflow: hidden;
+        }
+        
+        #plane-scene {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .multiplier-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+            z-index: 10;
+        }
+        
+        .controls {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        input[type="number"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        .btn-bet {
+            background: linear-gradient(45deg, #FF512F, #DD2476);
+            transition: all 0.3s;
+        }
+        
+        .btn-bet:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(221, 36, 118, 0.4);
+        }
+        
+        .btn-cashout {
+            background: linear-gradient(45deg, #00b09b, #96c93d);
+            transition: all 0.3s;
+        }
+        
+        .btn-cashout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 176, 155, 0.4);
+        }
+        
+        .history-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin: 2px;
+            font-size: 0.8rem;
+        }
+        
+        .history-item.win {
+            background: rgba(0, 255, 0, 0.2);
+        }
+        
+        .history-item.lose {
+            background: rgba(255, 0, 0, 0.2);
+        }
+        
+        .players-list {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .player-name {
+            font-weight: bold;
+        }
+        
+        .player-bet {
+            color: #f1c40f;
+        }
+        
+        .grid-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .grid-line {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .horizontal-grid {
+            width: 100%;
+            height: 1px;
+            left: 0;
+        }
+        
+        .vertical-grid {
+            width: 1px;
+            height: 100%;
+            top: 0;
+        }
+        
+        .moving-dots {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center">
+    <div class="text-center mb-4">
+        <h1 class="text-4xl font-bold mb-2">AVIATOR</h1>
+        <p class="text-lg">Parier et encaisser avant que l'avion ne décolle!</p>
+    </div>
+    
+    <div class="plane-container mb-8">
+        <div id="plane-scene"></div>
+        <div class="multiplier-display hidden">1.00x</div>
+        <div class="grid-lines" id="grid-lines"></div>
+        <div class="moving-dots" id="moving-dots"></div>
+    </div>
+    
+    <div class="controls w-full max-w-md p-4">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <label class="block text-sm mb-1">Mise (FCFA)</label>
+                <input type="number" id="bet-amount" min="100" value="1000" class="w-32 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm mb-1">Solde</label>
+                <div id="balance" class="text-xl font-bold">10 000 FCFA</div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <button id="place-bet" class="btn-bet py-3 px-6 rounded-lg font-bold text-white">PLACER UNE MISE</button>
+            <button id="cash-out" disabled class="btn-cashout py-3 px-6 rounded-lg font-bold text-white opacity-50 cursor-not-allowed">ENCAISSER</button>
+        </div>
+        
+        <div class="mt-4">
+            <h3 class="text-sm font-semibold mb-1">Joueurs en jeu</h3>
+            <div id="players-list" class="players-list">
+                <div class="text-center text-sm text-gray-400">Aucun joueur pour le moment</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-6 w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-2">Historique des gains</h3>
+        <div id="history" class="flex flex-wrap justify-center"></div>
+    </div>
+    
+    <script>
+        // Configuration du jeu
+        const config = {
+            initialBalance: 10000,
+            minBet: 100,
+            maxBet: 100000,
+            autoRoundDelay: 5000 // 5 secondes entre les tours
+        };
+        
+        // État du jeu
+        let gameState = {
+            balance: config.initialBalance,
+            currentBet: 1000,
+            isPlaying: false,
+            currentMultiplier: 1.0,
+            cashoutMultiplier: null,
+            flightInterval: null,
+            crashPoint: null,
+            history: [],
+            roundActive: false,
+            players: [],
+            autoRoundTimeout: null
+        };
+        
+        // Éléments DOM
+        const elements = {
+            betAmount: document.getElementById('bet-amount'),
+            balance: document.getElementById('balance'),
+            placeBet: document.getElementById('place-bet'),
+            cashOut: document.getElementById('cash-out'),
+            multiplierDisplay: document.querySelector('.multiplier-display'),
+            history: document.getElementById('history'),
+            planeScene: document.getElementById('plane-scene'),
+            playersList: document.getElementById('players-list'),
+            gridLines: document.getElementById('grid-lines'),
+            movingDots: document.getElementById('moving-dots')
+        };
+        
+        // Initialisation Three.js pour l'avion 3D
+        let scene, camera, renderer, plane;
+        let lightBeams = [];
+        let stars = [];
+        
+        function initThreeJS() {
+            // Création de la scène
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            
+            // Configuration de la caméra
+            camera = new THREE.PerspectiveCamera(75, elements.planeScene.clientWidth / elements.planeScene.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            // Configuration du rendu
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(elements.planeScene.clientWidth, elements.planeScene.clientHeight);
+            elements.planeScene.appendChild(renderer.domElement);
+            
+            // Création de l'avion
+            createPlane();
+            
+            // Création des effets lumineux
+            createLightBeams();
+            
+            // Création des étoiles
+            createStars();
+            
+            // Lumière directionnelle
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+            
+            // Lumière ambiante
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+            
+            // Gestion du redimensionnement
+            window.addEventListener('resize', () => {
+                camera.aspect = elements.planeScene.clientWidth / elements.planeScene.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(elements.planeScene.clientWidth, elements.planeScene.clientHeight);
+            });
+            
+            // Création des lignes de repère
+            createGridLines();
+            
+            // Création des points mobiles
+            createMovingDots();
+            
+            // Animation
+            animate();
+        }
+        
+        function createPlane() {
+            // Corps de l'avion (plus détaillé)
+            const bodyGeometry = new THREE.CylinderGeometry(0.15, 0.25, 1.2, 32);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x3498db,
+                specular: 0x111111,
+                shininess: 30
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.rotation.x = Math.PI / 2;
+            
+            // Ailes principales
+            const wingGeometry = new THREE.BoxGeometry(1.2, 0.05, 0.3);
+            const wingMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x2980b9,
+                specular: 0x111111,
+                shininess: 30
+            });
+            const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            leftWing.position.set(0, 0, 0);
+            
+            // Ailerons
+            const aileronGeometry = new THREE.BoxGeometry(0.4, 0.05, 0.2);
+            const aileronMaterial = new THREE.MeshPhongMaterial({ color: 0x1a5276 });
+            const leftAileron = new THREE.Mesh(aileronGeometry, aileronMaterial);
+            leftAileron.position.set(-0.6, 0, 0.15);
+            
+            // Queue
+            const tailGeometry = new THREE.BoxGeometry(0.3, 0.05, 0.4);
+            const tailMaterial = new THREE.MeshPhongMaterial({ color: 0x2980b9 });
+            const tail = new THREE.Mesh(tailGeometry, tailMaterial);
+            tail.position.set(0, -0.5, 0.3);
+            
+            // Dérive (queue verticale)
+            const finGeometry = new THREE.BoxGeometry(0.05, 0.3, 0.2);
+            const finMaterial = new THREE.MeshPhongMaterial({ color: 0x1a5276 });
+            const fin = new THREE.Mesh(finGeometry, finMaterial);
+            fin.position.set(0, -0.3, 0.5);
+            
+            // Hélice
+            const propellerGeometry = new THREE.BoxGeometry(0.6, 0.02, 0.15);
+            const propellerMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xc0392b,
+                specular: 0x111111,
+                shininess: 30
+            });
+            const propeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+            propeller.position.set(0.7, 0, 0);
+            
+            // Moteur
+            const engineGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.2, 32);
+            const engineMaterial = new THREE.MeshPhongMaterial({ color: 0x7f8c8d });
+            const engine = new THREE.Mesh(engineGeometry, engineMaterial);
+            engine.position.set(0.6, 0, 0);
+            engine.rotation.x = Math.PI / 2;
+            
+            // Groupe de l'avion
+            plane = new THREE.Group();
+            plane.add(body);
+            plane.add(leftWing);
+            plane.add(leftAileron);
+            plane.add(tail);
+            plane.add(fin);
+            plane.add(propeller);
+            plane.add(engine);
+            scene.add(plane);
+            
+            // Position initiale
+            plane.position.x = 0;
+            plane.position.y = 0;
+        }
+        
+        function createLightBeams() {
+            // Créer 5 rayons lumineux
+            for (let i = 0; i < 5; i++) {
+                const height = Math.random() * 3 + 1;
+                const width = 0.02;
+                const depth = 0.02;
+                
+                const geometry = new THREE.BoxGeometry(width, height, depth);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x00ffff,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                const beam = new THREE.Mesh(geometry, material);
+                
+                // Position aléatoire
+                beam.position.x = (Math.random() * 8) - 4;
+                beam.position.y = (Math.random() * 6) - 3;
+                beam.position.z = (Math.random() * -10);
+                
+                scene.add(beam);
+                lightBeams.push(beam);
+            }
+        }
+        
+        function createStars() {
+            // Créer 200 étoiles
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.05,
+                transparent: true
+            });
+            
+            const starVertices = [];
+            for (let i = 0; i < 200; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starVertices.push(x, y, z);
+            }
+            
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            const starField = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starField);
+        }
+        
+        function createGridLines() {
+            // Lignes horizontales
+            for (let i = -5; i <= 5; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line horizontal-grid';
+                line.style.top = `${50 + i * 10}%`;
+                elements.gridLines.appendChild(line);
+            }
+            
+            // Lignes verticales
+            for (let i = -5; i <= 5; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line vertical-grid';
+                line.style.left = `${50 + i * 10}%`;
+                elements.gridLines.appendChild(line);
+            }
+        }
+        
+        function createMovingDots() {
+            // Points sur le bord gauche
+            for (let i = 0; i < 20; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.style.left = '10px';
+                dot.style.top = `${i * 5}%`;
+                elements.movingDots.appendChild(dot);
+            }
+            
+            // Points sur le bord bas
+            for (let i = 0; i < 20; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.style.bottom = '10px';
+                dot.style.left = `${i * 5}%`;
+                elements.movingDots.appendChild(dot);
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (plane) {
+                // Rotation de l'hélice
+                if (plane.children[5]) {
+                    plane.children[5].rotation.x += 0.3;
+                }
+                
+                // Animation du vol avec mouvement réaliste
+                if (gameState.roundActive) {
+                    // Mouvement principal avec petites oscillations
+                    const time = Date.now() * 0.001;
+                    
+                    // Position de base avec oscillation
+                    plane.position.x = Math.sin(time * 0.5) * 0.5;
+                    plane.position.y = Math.sin(time * 0.7) * 0.3;
+                    
+                    // Légère rotation pour effet réaliste
+                    plane.rotation.z = Math.sin(time * 0.3) * 0.1;
+                    plane.rotation.x = Math.sin(time * 0.4) * 0.05;
+                    
+                    // Vol exponentiel
+                    if (gameState.currentMultiplier > 1.0) {
+                        plane.position.y += Math.log(gameState.currentMultiplier) * 0.5;
+                    }
+                    
+                    // Si l'avion s'écrase
+                    if (gameState.crashPoint && gameState.currentMultiplier >= gameState.crashPoint) {
+                        endRound(false);
+                    }
+                } else {
+                    // Réinitialiser la position de l'avion
+                    plane.position.x = 0;
+                    plane.position.y = 0;
+                    plane.rotation.z = 0;
+                    plane.rotation.x = 0;
+                }
+                
+                // Animation des rayons lumineux
+                lightBeams.forEach(beam => {
+                    beam.position.z += 0.05;
+                    if (beam.position.z > 0) {
+                        beam.position.z = -10;
+                        beam.position.x = (Math.random() * 8) - 4;
+                        beam.position.y = (Math.random() * 6) - 3;
+                    }
+                });
+                
+                // Animation des points mobiles
+                const dots = elements.movingDots.querySelectorAll('.dot');
+                dots.forEach(dot => {
+                    if (dot.style.left === '10px') {
+                        // Points verticaux
+                        let top = parseFloat(dot.style.top);
+                        top = (top + 0.2) % 100;
+                        dot.style.top = `${top}%`;
+                    } else {
+                        // Points horizontaux
+                        let left = parseFloat(dot.style.left);
+                        left = (left + 0.2) % 100;
+                        dot.style.left = `${left}%`;
+                    }
+                });
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Initialisation du jeu
+        function initGame() {
+            updateBalanceDisplay();
+            
+            // Événements
+            elements.placeBet.addEventListener('click', placeBet);
+            elements.cashOut.addEventListener('click', cashOut);
+            
+            // Initialisation Three.js
+            initThreeJS();
+            
+            // Démarrer le premier tour automatiquement
+            startAutoRound();
+        }
+        
+        // Démarrer un nouveau tour automatiquement
+        function startAutoRound() {
+            if (gameState.autoRoundTimeout) {
+                clearTimeout(gameState.autoRoundTimeout);
+            }
+            
+            // Réinitialiser l'état du tour
+            gameState.roundActive = true;
+            gameState.currentMultiplier = 1.0;
+            gameState.crashPoint = 1 + Math.random() * 9; // Entre 1.1x et 10x
+            gameState.players = [];
+            
+            // Mettre à jour l'affichage
+            updatePlayersList();
+            elements.multiplierDisplay.textContent = gameState.currentMultiplier.toFixed(2) + 'x';
+            elements.multiplierDisplay.classList.remove('hidden');
+            
+            // Démarrer l'incrémentation du multiplicateur
+            gameState.flightInterval = setInterval(() => {
+                gameState.currentMultiplier += 0.01;
+                elements.multiplierDisplay.textContent = gameState.currentMultiplier.toFixed(2) + 'x';
+                
+                // Changement de couleur en fonction du multiplicateur
+                if (gameState.currentMultiplier >= 2.0) {
+                    elements.multiplierDisplay.style.color = '#f1c40f';
+                } else if (gameState.currentMultiplier >= 1.5) {
+                    elements.multiplierDisplay.style.color = '#2ecc71';
+                } else {
+                    elements.multiplierDisplay.style.color = 'white';
+                }
+            }, 100);
+            
+            // Si personne n'a joué, terminer le tour après un délai aléatoire
+            if (gameState.players.length === 0) {
+                gameState.autoRoundTimeout = setTimeout(() => {
+                    endRound(false);
+                }, 3000 + Math.random() * 7000); // Entre 3 et 10 secondes
+            }
+        }
+        
+        // Placer une mise
+        function placeBet() {
+            const betAmount = parseInt(elements.betAmount.value);
+            
+            // Validation de la mise
+            if (isNaN(betAmount) || betAmount < config.minBet || betAmount > config.maxBet) {
+                alert(`Veuillez entrer une mise valide entre ${config.minBet} et ${config.maxBet} FCFA`);
+                return;
+            }
+            
+            if (betAmount > gameState.balance) {
+                alert("Solde insuffisant");
+                return;
+            }
+            
+            if (gameState.isPlaying) {
+                alert("Vous avez déjà une mise en cours");
+                return;
+            }
+            
+            // Ajouter le joueur à la liste
+            const playerName = `Joueur ${Math.floor(Math.random() * 1000)}`;
+            gameState.players.push({
+                name: playerName,
+                bet: betAmount,
+                cashedOut: false,
+                multiplier: null
+            });
+            
+            // Mettre à jour l'affichage des joueurs
+            updatePlayersList();
+            
+            // Début du jeu pour ce joueur
+            gameState.currentBet = betAmount;
+            gameState.balance -= betAmount;
+            gameState.isPlaying = true;
+            
+            updateBalanceDisplay();
+            elements.placeBet.disabled = true;
+            elements.placeBet.classList.add('opacity-50', 'cursor-not-allowed');
+            elements.cashOut.disabled = false;
+            elements.cashOut.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        
+        // Encaisser les gains
+        function cashOut() {
+            if (!gameState.isPlaying) return;
+            
+            // Trouver le joueur actuel
+            const currentPlayer = gameState.players.find(p => !p.cashedOut && p.bet === gameState.currentBet);
+            if (currentPlayer) {
+                currentPlayer.cashedOut = true;
+                currentPlayer.multiplier = gameState.currentMultiplier;
+            }
+            
+            gameState.cashoutMultiplier = gameState.currentMultiplier;
+            endPlayerRound(true);
+        }
+        
+        // Fin du tour pour le joueur actuel
+        function endPlayerRound(win) {
+            gameState.isPlaying = false;
+            
+            // Calcul des gains
+            if (win) {
+                const winnings = Math.floor(gameState.currentBet * gameState.cashoutMultiplier);
+                gameState.balance += winnings;
+                
+                // Ajouter à l'historique
+                gameState.history.unshift({
+                    multiplier: gameState.cashoutMultiplier,
+                    win: true,
+                    amount: winnings
+                });
+                
+                // Animation de victoire
+                elements.multiplierDisplay.style.color = '#2ecc71';
+                elements.multiplierDisplay.style.textShadow = '0 0 20px #2ecc71';
+            }
+            
+            // Mettre à jour l'affichage
+            updateBalanceDisplay();
+            updateHistoryDisplay();
+            updatePlayersList();
+            
+            // Réactiver le bouton de mise
+            elements.placeBet.disabled = false;
+            elements.placeBet.classList.remove('opacity-50', 'cursor-not-allowed');
+            elements.cashOut.disabled = true;
+            elements.cashOut.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        
+        // Fin du tour pour tous les joueurs
+        function endRound(win) {
+            clearInterval(gameState.flightInterval);
+            gameState.roundActive = false;
+            
+            // Traiter tous les joueurs qui n'ont pas encaissé
+            gameState.players.forEach(player => {
+                if (!player.cashedOut) {
+                    player.multiplier = gameState.currentMultiplier;
+                    
+                    // Ajouter à l'historique si c'est le joueur actuel
+                    if (gameState.isPlaying && player.bet === gameState.currentBet) {
+                        gameState.history.unshift({
+                            multiplier: player.multiplier,
+                            win: false,
+                            amount: -player.bet
+                        });
+                    }
+                }
+            });
+            
+            // Animation de défaite
+            if (!win) {
+                elements.multiplierDisplay.style.color = '#e74c3c';
+                elements.multiplierDisplay.style.textShadow = '0 0 20px #e74c3c';
+                
+                // Animation de crash
+                if (plane) {
+                    plane.rotation.z = Math.PI / 2;
+                    setTimeout(() => {
+                        plane.position.y = -2;
+                    }, 500);
+                }
+            }
+            
+            // Mettre à jour l'affichage
+            updateHistoryDisplay();
+            updatePlayersList();
+            
+            // Réinitialiser l'état du joueur actuel
+            if (gameState.isPlaying) {
+                gameState.isPlaying = false;
+                elements.placeBet.disabled = false;
+                elements.placeBet.classList.remove('opacity-50', 'cursor-not-allowed');
+                elements.cashOut.disabled = true;
+                elements.cashOut.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            
+            // Cacher le multiplicateur après un délai
+            setTimeout(() => {
+                elements.multiplierDisplay.classList.add('hidden');
+                
+                // Réinitialiser l'avion
+                if (plane) {
+                    plane.rotation.z = 0;
+                    plane.position.x = 0;
+                    plane.position.y = 0;
+                }
+                
+                // Démarrer un nouveau tour après un délai
+                gameState.autoRoundTimeout = setTimeout(() => {
+                    startAutoRound();
+                }, config.autoRoundDelay);
+            }, 3000);
+        }
+        
+        // Mettre à jour l'affichage du solde
+        function updateBalanceDisplay() {
+            elements.balance.textContent = gameState.balance.toLocaleString('fr-FR') + ' FCFA';
+        }
+        
+        // Mettre à jour l'historique
+        function updateHistoryDisplay() {
+            elements.history.innerHTML = '';
+            
+            // Afficher les 5 derniers résultats
+            const recentHistory = gameState.history.slice(0, 5);
+            
+            recentHistory.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = `history-item ${item.win ? 'win' : 'lose'}`;
+                historyItem.textContent = `${item.multiplier.toFixed(2)}x`;
+                elements.history.appendChild(historyItem);
+            });
+        }
+        
+        // Mettre à jour la liste des joueurs
+        function updatePlayersList() {
+            if (gameState.players.length === 0) {
+                elements.playersList.innerHTML = '<div class="text-center text-sm text-gray-400">Aucun joueur pour le moment</div>';
+                return;
+            }
+            
+            elements.playersList.innerHTML = '';
+            
+            gameState.players.forEach(player => {
+                const playerItem = document.createElement('div');
+                playerItem.className = 'player-item';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'player-name';
+                nameSpan.textContent = player.name;
+                
+                const betSpan = document.createElement('span');
+                betSpan.className = 'player-bet';
+                betSpan.textContent = `${player.bet.toLocaleString('fr-FR')} FCFA`;
+                
+                playerItem.appendChild(nameSpan);
+                playerItem.appendChild(betSpan);
+                
+                if (player.cashedOut) {
+                    const multiplierSpan = document.createElement('span');
+                    multiplierSpan.className = 'text-green-500';
+                    multiplierSpan.textContent = ` (${player.multiplier.toFixed(2)}x)`;
+                    playerItem.appendChild(multiplierSpan);
+                }
+                
+                elements.playersList.appendChild(playerItem);
+            });
+        }
+        
+        // Initialiser le jeu lorsque la page est chargée
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
